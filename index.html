@@ -68,7 +68,6 @@
     text-align:center;
   }
 
-  /* ambient breathing circle — the signature element */
   .breath{
     position:absolute;
     top:50%;
@@ -101,7 +100,6 @@
     gap:22px;
   }
 
-  /* progress: five marks, one per sense-step */
   .progress{
     display:flex;
     gap:10px;
@@ -147,7 +145,6 @@
     line-height:1.5;
   }
 
-  /* text entry for the current step */
   .entry-form{
     width:100%;
     max-width:340px;
@@ -282,7 +279,8 @@
     padding:8px;
   }
 
-  /* screens */
+
+
   .screen{ display:none; }
   .screen.active{
     display:flex;
@@ -316,6 +314,82 @@
     font-size:clamp(28px,7vw,36px);
     max-width:18ch;
   }
+
+  .tracker{
+    margin-top:22px;
+    padding:20px 24px;
+    background:var(--surface);
+    border-radius:20px;
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    gap:6px;
+    width:100%;
+    max-width:300px;
+  }
+  .tracker-label{
+    font-size:13px;
+    letter-spacing:0.03em;
+    color:var(--ink-soft);
+    font-weight:500;
+  }
+  .tracker-stats{
+    display:flex;
+    align-items:flex-end;
+    gap:14px;
+  }
+  .tracker-stat{
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    gap:2px;
+  }
+  .tracker-num{
+    font-family:'Fraunces',serif;
+    font-weight:600;
+    font-size:34px;
+    color:var(--ink);
+    line-height:1.1;
+    font-variant-numeric:tabular-nums;
+    min-width:1.4em;
+  }
+  .tracker-unit{
+    font-size:11px;
+    color:var(--ink-soft);
+    letter-spacing:0.02em;
+  }
+  .tracker-log{
+    margin-top:8px;
+    background:none;
+    color:var(--ink-soft);
+    font-size:13px;
+    font-weight:500;
+    text-decoration:underline;
+    text-underline-offset:3px;
+    padding:6px;
+  }
+  .tracker-confirm{
+    display:none;
+    align-items:center;
+    gap:10px;
+    margin-top:6px;
+    font-size:13px;
+    color:var(--ink-soft);
+  }
+  .tracker-confirm.visible{ display:flex; }
+  .tracker-confirm button{
+    background:var(--clay-soft);
+    color:var(--ink);
+    padding:6px 14px;
+    border-radius:14px;
+    font-size:13px;
+    font-weight:600;
+  }
+  .tracker-confirm #trackerConfirmNo{
+    background:none;
+    text-decoration:underline;
+    font-weight:500;
+  }
 </style>
 </head>
 <body>
@@ -337,6 +411,21 @@
       <p class="intro-sub">Facciamo un passo alla volta vita mia</p>
       <div class="actions" style="margin-top:14px;">
         <button class="btn-primary visible" onclick="goToStep(0)">Inizia</button>
+      </div>
+
+      <div class="tracker" id="tracker">
+        <p class="tracker-label">da quanto sei serena</p>
+        <div class="tracker-stats">
+          <div class="tracker-stat"><span class="tracker-num" id="tMonths">0</span><span class="tracker-unit">mesi</span></div>
+          <div class="tracker-stat"><span class="tracker-num" id="tDays">0</span><span class="tracker-unit">giorni</span></div>
+          <div class="tracker-stat"><span class="tracker-num" id="tSeconds">0</span><span class="tracker-unit">secondi</span></div>
+        </div>
+        <button class="tracker-log" id="trackerLogBtn">Ho avuto un episodio oggi</button>
+        <div class="tracker-confirm" id="trackerConfirm">
+          <span>Confermi?</span>
+          <button id="trackerConfirmYes">Sì</button>
+          <button id="trackerConfirmNo">Annulla</button>
+        </div>
       </div>
     </div>
   </div>
@@ -528,6 +617,66 @@
       navigator.serviceWorker.register('/sw.js').catch(() => {});
     });
   }
+
+  // --- contatore "da quanto sei serena" (salvato solo su questo telefono) ---
+  const STORAGE_KEY = 'quiOra_ultimoEpisodio';
+  const tMonthsEl = document.getElementById('tMonths');
+  const tDaysEl = document.getElementById('tDays');
+  const tSecondsEl = document.getElementById('tSeconds');
+  const trackerLogBtn = document.getElementById('trackerLogBtn');
+  const trackerConfirm = document.getElementById('trackerConfirm');
+  const trackerConfirmYes = document.getElementById('trackerConfirmYes');
+  const trackerConfirmNo = document.getElementById('trackerConfirmNo');
+
+  function breakdown(startIso){
+    const start = new Date(startIso);
+    const now = new Date();
+
+    let months = (now.getFullYear() - start.getFullYear()) * 12 + (now.getMonth() - start.getMonth());
+    let cursor = new Date(start);
+    cursor.setMonth(cursor.getMonth() + months);
+    if (cursor > now){
+      months--;
+      cursor = new Date(start);
+      cursor.setMonth(cursor.getMonth() + months);
+    }
+
+    const msAfterMonths = now - cursor;
+    const days = Math.floor(msAfterMonths / 86400000);
+    const seconds = Math.floor((msAfterMonths - days * 86400000) / 1000);
+
+    return { months: Math.max(0, months), days, seconds };
+  }
+
+  function renderTracker(){
+    let last = localStorage.getItem(STORAGE_KEY);
+    if (!last){
+      last = new Date().toISOString();
+      localStorage.setItem(STORAGE_KEY, last);
+    }
+    const { months, days, seconds } = breakdown(last);
+    tMonthsEl.textContent = months;
+    tDaysEl.textContent = days;
+    tSecondsEl.textContent = seconds;
+  }
+
+  trackerLogBtn.addEventListener('click', () => {
+    trackerLogBtn.style.display = 'none';
+    trackerConfirm.classList.add('visible');
+  });
+  trackerConfirmNo.addEventListener('click', () => {
+    trackerConfirm.classList.remove('visible');
+    trackerLogBtn.style.display = 'inline';
+  });
+  trackerConfirmYes.addEventListener('click', () => {
+    localStorage.setItem(STORAGE_KEY, new Date().toISOString());
+    trackerConfirm.classList.remove('visible');
+    trackerLogBtn.style.display = 'inline';
+    renderTracker();
+  });
+
+  renderTracker();
+  setInterval(renderTracker, 1000);
 </script>
 
 </body>
