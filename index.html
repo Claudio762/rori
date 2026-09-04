@@ -632,18 +632,24 @@
     const start = new Date(startIso);
     const now = new Date();
 
-    let months = (now.getFullYear() - start.getFullYear()) * 12 + (now.getMonth() - start.getMonth());
-    let cursor = new Date(start);
+    const startMidnight = new Date(start.getFullYear(), start.getMonth(), start.getDate());
+    const nowMidnight = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+
+    let months = (nowMidnight.getFullYear() - startMidnight.getFullYear()) * 12 + (nowMidnight.getMonth() - startMidnight.getMonth());
+    let cursor = new Date(startMidnight);
     cursor.setMonth(cursor.getMonth() + months);
-    if (cursor > now){
+    if (cursor > nowMidnight){
       months--;
-      cursor = new Date(start);
+      cursor = new Date(startMidnight);
       cursor.setMonth(cursor.getMonth() + months);
     }
 
-    const msAfterMonths = now - cursor;
-    const days = Math.floor(msAfterMonths / 86400000);
-    const seconds = Math.floor((msAfterMonths - days * 86400000) / 1000);
+    const days = Math.round((nowMidnight - cursor) / 86400000);
+
+    // secondi: tempo reale trascorso da quando è stato segnato l'episodio,
+    // che gira ogni 24 ore reali (indipendente dalla mezzanotte)
+    const totalElapsedSeconds = Math.floor((now - start) / 1000);
+    const seconds = ((totalElapsedSeconds % 86400) + 86400) % 86400;
 
     return { months: Math.max(0, months), days, seconds };
   }
