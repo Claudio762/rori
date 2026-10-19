@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>Non sei mai sola</title>
+<title>Qui, ora</title>
 <meta name="description" content="Un aiuto rapido per calmare ansia e attacchi di panico con la tecnica del radicamento 5-4-3-2-1.">
 
 <!-- PWA: installazione su iPhone -->
@@ -333,30 +333,25 @@
     color:var(--ink-soft);
     font-weight:500;
   }
-  .tracker-stats{
-    display:flex;
-    align-items:flex-end;
-    gap:14px;
-  }
-  .tracker-stat{
-    display:flex;
-    flex-direction:column;
-    align-items:center;
-    gap:2px;
-  }
-  .tracker-num{
+  .tracker-time{
     font-family:'Fraunces',serif;
     font-weight:600;
-    font-size:34px;
+    font-size:26px;
+    line-height:1.2;
     color:var(--ink);
-    line-height:1.1;
-    font-variant-numeric:tabular-nums;
-    min-width:1.4em;
+    margin-top:2px;
   }
-  .tracker-unit{
-    font-size:11px;
+  .tracker-or{
+    font-size:12px;
     color:var(--ink-soft);
-    letter-spacing:0.02em;
+    margin-top:10px;
+  }
+  .tracker-secs{
+    font-family:'Fraunces',serif;
+    font-weight:500;
+    font-size:20px;
+    color:var(--ink);
+    font-variant-numeric:tabular-nums;
   }
   .tracker-log{
     margin-top:8px;
@@ -406,21 +401,18 @@
   <!-- Screen 0: intro -->
   <div class="screen active" id="screen-intro">
     <div class="content">
-      <p class="eyebrow">Rori's safe place 😉</p>
-      <h1 class="intro-title">Sei qui. Sei al sicuro amore.</h1>
-      <p class="intro-sub">Facciamo un passo alla volta vita mia</p>
+      <p class="eyebrow">Il posto sicuro di Rori</p>
+      <h1 class="intro-title">Sei qui. Sei al sicuro, Rori.</h1>
+      <p class="intro-sub">Facciamo un passo alla volta.</p>
       <div class="actions" style="margin-top:14px;">
         <button class="btn-primary visible" onclick="goToStep(0)">Inizia</button>
       </div>
 
       <div class="tracker" id="tracker">
-        <p class="tracker-label">da quanto sei serena</p>
-        <div class="tracker-stats">
-          <div class="tracker-stat"><span class="tracker-num" id="tMonths">0</span><span class="tracker-unit">mesi</span></div>
-          <div class="tracker-stat"><span class="tracker-num" id="tDays">0</span><span class="tracker-unit">giorni</span></div>
-          <div class="tracker-stat"><span class="tracker-unit">oppure</span></div>
-          <div class="tracker-stat"><span class="tracker-num" id="tSeconds">0</span><span class="tracker-unit">secondi</span></div>
-        </div>
+        <p class="tracker-label">dall'ultimo attacco sono passati</p>
+        <p class="tracker-time" id="tTime">0 giorni</p>
+        <p class="tracker-or">oppure in secondi:</p>
+        <p class="tracker-secs" id="tSecs">0</p>
         <button class="tracker-log" id="trackerLogBtn">Ho avuto un episodio oggi</button>
         <div class="tracker-confirm" id="trackerConfirm">
           <span>Confermi?</span>
@@ -454,8 +446,8 @@
   <div class="screen" id="screen-end">
     <div class="content">
       <p class="eyebrow">Fatto</p>
-      <h2 class="end-title">Hai fatto un giro completo principessa mia. Bene così.</h2>
-      <p class="intro-sub">Resta qui ancora un momento, se ti va. Puoi ricominciare oppure fermarti qui o ancora meglio chiamami (((dalla rubrica))).</p>
+      <h2 class="end-title">Hai fatto un giro completo, Rori. Bene così.</h2>
+      <p class="intro-sub">Resta qui ancora un momento, se ti va. Puoi ricominciare oppure fermarti qui.</p>
       <div class="actions" style="margin-top:14px;">
         <button class="btn-primary visible" onclick="goToStep(0)">Rifai il giro</button>
         <button class="btn-ghost" onclick="goToIntro()">Torna all'inizio</button>
@@ -467,11 +459,11 @@
 
 <script>
   const steps = [
-    { n: 5, label: "cose che vedo",      instruction: "Guardati intorno amore mio. Scrivi una cosa che vedi e invia, poi la prossima." },
+    { n: 5, label: "cose che vedo",      instruction: "Guardati intorno. Scrivi una cosa che vedi e invia, poi la prossima." },
     { n: 4, label: "cose che tocco",    instruction: "Nota la consistenza di ciò che hai vicino." },
     { n: 3, label: "cose che sento",     instruction: "Ascolta i suoni intorno a te, vicini o lontani che siano." },
     { n: 2, label: "odori che sento",    instruction: "Prova a distinguere un odore, anche leggero." },
-    { n: 1, label: "sapore che sento",   instruction: "Nota un sapore in bocca, anche solo il tuo respiro dolcissimo o le tue labbra fragolose amore" },
+    { n: 1, label: "sapore che sento",   instruction: "Nota un sapore in bocca, anche solo quello del tuo respiro." },
   ];
 
   let stepIndex = 0;
@@ -621,9 +613,8 @@
 
   // --- contatore "da quanto sei serena" (salvato solo su questo telefono) ---
   const STORAGE_KEY = 'quiOra_ultimoEpisodio';
-  const tMonthsEl = document.getElementById('tMonths');
-  const tDaysEl = document.getElementById('tDays');
-  const tSecondsEl = document.getElementById('tSeconds');
+  const tTimeEl = document.getElementById('tTime');
+  const tSecsEl = document.getElementById('tSecs');
   const trackerLogBtn = document.getElementById('trackerLogBtn');
   const trackerConfirm = document.getElementById('trackerConfirm');
   const trackerConfirmYes = document.getElementById('trackerConfirmYes');
@@ -647,10 +638,8 @@
 
     const days = Math.round((nowMidnight - cursor) / 86400000);
 
-    // secondi: tempo reale trascorso da quando è stato segnato l'episodio,
-    // che gira ogni 24 ore reali (indipendente dalla mezzanotte)
-    const totalElapsedSeconds = Math.floor((now - start) / 1000);
-    const seconds = ((totalElapsedSeconds % 86400) + 86400) % 86400;
+    // secondi totali realmente trascorsi dall'ultimo episodio
+    const seconds = Math.max(0, Math.floor((now - start) / 1000));
 
     return { months: Math.max(0, months), days, seconds };
   }
@@ -662,9 +651,11 @@
       localStorage.setItem(STORAGE_KEY, last);
     }
     const { months, days, seconds } = breakdown(last);
-    tMonthsEl.textContent = months;
-    tDaysEl.textContent = days;
-    tSecondsEl.textContent = seconds;
+    const parts = [];
+    if (months > 0) parts.push(months + (months === 1 ? ' mese' : ' mesi'));
+    if (days > 0) parts.push(days + (days === 1 ? ' giorno' : ' giorni'));
+    tTimeEl.textContent = parts.length ? parts.join(' e ') : 'meno di un giorno';
+    tSecsEl.textContent = seconds.toLocaleString('it-IT');
   }
 
   trackerLogBtn.addEventListener('click', () => {
